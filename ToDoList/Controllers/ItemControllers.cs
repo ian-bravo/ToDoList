@@ -25,13 +25,17 @@ namespace ToDoList.Controllers
     [HttpPost]
     public ActionResult Create(Item item)
     {
-      if (item.CategoryId == 0)
+      if (!ModelState.IsValid)
       {
-        return RedirectToAction("Create");
+          ViewBag.CategoryId = new SelectList(_db.Categories, "CategoryId", "Name");
+          return View(item);
       }
-      _db.Items.Add(item);
-      _db.SaveChanges();
-      return RedirectToAction("Index");
+      else
+      {
+        _db.Items.Add(item);
+        _db.SaveChanges();
+        return RedirectToAction("Index");
+      }
     }
 
     public ActionResult Details(int id)
@@ -81,5 +85,35 @@ namespace ToDoList.Controllers
                           .ToList();
       return View(model);
     }
+
+    public ActionResult AddTag(int id)
+    {
+      Item thisItem = _db.Items.FirstOrDefault(items => items.ItemId == id);
+      ViewBag.TagId = new SelectList(_db.Tags, "TagId", "Title");
+      return View(thisItem);
+    }
+
+    [HttpPost]
+    public ActionResult AddTag(Item item, int tagId)
+    {
+      #nullable enable
+      ItemTag? joinEntity = _db.ItemTags.FirstOrDefault(join => (join.TagId == tagId && join.ItemId == item.ItemId));
+      #nullable disable
+      if (joinEntity == null && tagId != 0)
+      {
+        _db.ItemTags.Add(new ItemTag() { TagId = tagId, ItemId = item.ItemId });
+        _db.SaveChanges();
+      }
+      return RedirectToAction("Details", new { id = item.ItemId });
+    }
+
+    [HttpPost]
+    public ActionResult DeleteJoin(int joinId)
+    {
+      ItemTag joinEntry = _db.ItemTags.FirstOrDefault(entry => entry.ItemTagId == joinId);
+      _db.ItemTags.Remove(joinEntry);
+      _db.SaveChanges();
+      return RedirectToAction("Index");
+    } 
   }
 }
